@@ -6,15 +6,24 @@ import threading
 import uuid
 from datetime import datetime
 
-from flask import Flask, Response, abort, jsonify, request, send_from_directory
+from urllib.parse import quote, urlsplit
 
-from . import covers, db, sync
+from flask import Flask, Response, abort, jsonify, redirect, request, send_from_directory
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+from . import covers, db, pocketid, sync
 
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"),
                     format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 STATIC = os.path.join(os.path.dirname(__file__), "static")
 app = Flask(__name__, static_folder=STATIC, static_url_path="/static")
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+app.config["POCKETID"] = pocketid.PocketID()
+SESSION_COOKIE = "trophaeen_session"
+SESSION_MAX_AGE = 180 * 86400
+OPEN_PATHS = {"/healthz", "/manifest.webmanifest", "/static/icon.svg",
+              "/auth/pocketid", "/auth/pocketid/zurueck", "/auth/abmelden"}
 
 PLATFORMS = ["steam", "playstation", "xbox", "nintendo", "other"]
 STATUSES = ["none", "playing", "finished", "completed", "backlog", "shelved"]
@@ -48,6 +57,76 @@ def public_game(r):
     d.pop("ach_checked_lp", None)
     d["tags"] = [t for t in (d.get("tags") or "").split(",") if t]
     return d
+
+
+# --------------------------------------------- Anmeldung über Pocket ID --
+# Nur aktiv, wenn OIDC_ISSUER, OIDC_CLIENT_ID und OIDC_CLIENT_SECRET gesetzt sind.
+
+def _oidc():
+    return app.config["POCKETID"]
+
+
+def _key():
+    return pocketid.secret_key(db.DATA_DIR)
+
+
+def _auth_page(msg, status=403):
+    html = (f"<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'>"
+            f"<title>Trophäenschrank</title><body style='font-family:system-ui;max-width:420px;margin:12vh auto;"
+            f"padding:0 16px'><h1>Trophäenschrank</h1><p>{msg.replace('<', '&lt;')}</p>"
+            f"<p><a href='/auth/pocketid'>{_oidc().label}</a></p></body>")
+    return Response(html, status, mimetype="text/html")
+
+
+@app.before_request
+def require_login():
+    oidc = _oidc()
+    if not oidc.enabled or request.path in OPEN_PATHS:
+        return None
+    if request.method not in ("GET", "HEAD"):
+        origin = request.headers.get("Origin")
+        if origin and urlsplit(origin).netloc != request.host:
+            return jsonify(error="Anfrage von fremder Seite"), 403
+    if pocketid.unsign(request.cookies.get(SESSION_COOKIE), _key(), max_age=SESSION_MAX_AGE):
+        return None
+    if request.path.startswith("/api/"):
+        return jsonify(error="Bitte anmelden", login="/auth/pocketid"), 401
+    return redirect("/auth/pocketid?next=" + quote(request.full_path.rstrip("?"), safe="/?=&"))
+
+
+@app.get("/auth/pocketid")
+def oidc_start():
+    try:
+        url, pending = _oidc().begin(request.host_url.rstrip("/") + "/auth/pocketid/zurueck",
+                                     request.args.get("next", "/"))
+    except pocketid.OIDCError as e:
+        return _auth_page(str(e))
+    res = redirect(url)
+    res.set_cookie(pocketid.PENDING_COOKIE, pocketid.sign(pending, _key()), max_age=pocketid.PENDING_MAX_AGE,
+                   httponly=True, samesite="Lax", secure=request.is_secure)
+    return res
+
+
+@app.get("/auth/pocketid/zurueck")
+def oidc_callback():
+    pending = pocketid.unsign(request.cookies.get(pocketid.PENDING_COOKIE), _key())
+    try:
+        info = _oidc().complete(request.args, pending)
+    except pocketid.OIDCError as e:
+        return _auth_page(str(e))
+    res = redirect(pending["next"])
+    res.set_cookie(SESSION_COOKIE, pocketid.sign({"sub": info["sub"], "name": info["name"] or info["username"],
+                                                  "t": int(datetime.now().timestamp())}, _key()),
+                   max_age=SESSION_MAX_AGE, httponly=True, samesite="Lax", secure=request.is_secure)
+    res.delete_cookie(pocketid.PENDING_COOKIE)
+    return res
+
+
+@app.get("/auth/abmelden")
+def oidc_logout():
+    res = _auth_page("Du bist abgemeldet.", 200)
+    res.delete_cookie(SESSION_COOKIE)
+    return res
 
 
 # ------------------------------------------------------------------ Seiten --

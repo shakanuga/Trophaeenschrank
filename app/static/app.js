@@ -38,6 +38,10 @@ async function api(path, opts = {}) {
     headers: opts.body ? { "Content-Type": "application/json" } : {},
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
+  if (r.status === 401) {
+    location.href = "/auth/pocketid?next=" + encodeURIComponent(location.pathname + location.search + location.hash);
+    throw new Error("Bitte anmelden");
+  }
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(data.error || `Fehler ${r.status}`);
   return data;

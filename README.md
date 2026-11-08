@@ -61,6 +61,16 @@ Gibt es für ein Spiel kein Bild, fällt die App automatisch auf das offizielle 
 - „Durchgespielt“, „Backlog“, „Pausiert“ setzt du selbst – die bleiben beim Abgleich erhalten.
 - Kommen per DLC neue Erfolge dazu, fällt ein 100-%-Spiel auf „Durchgespielt“ zurück.
 
+## Anmeldung mit Pocket ID
+
+Ohne Einstellungen ist der Trophäenschrank offen für alle, die die Adresse erreichen. Mit Pocket ID fragt er vor jedem Zugriff nach einer Anmeldung.
+
+1. In Pocket ID einen OIDC-Client `Trophäenschrank` anlegen, Callback-URL `https://trophaeen.example.de/auth/pocketid/zurueck`. Unter „Allowed User Groups“ festlegen, wer rein darf.
+2. Am Container `OIDC_ISSUER` (z. B. `https://id.example.de`), `OIDC_CLIENT_ID` und `OIDC_CLIENT_SECRET` setzen.
+3. Optional: `OIDC_ALLOWED_GROUPS`, `OIDC_LABEL`, `OIDC_REDIRECT_URI`.
+
+Die Anmeldung gilt 180 Tage, abmelden über `/auth/abmelden`. `/healthz` und das Manifest bleiben offen.
+
 ## Entwicklung
 
 ```bash

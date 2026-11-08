@@ -17,4 +17,8 @@
   <Config Name="Zeitzone" Target="TZ" Default="Europe/Berlin" Mode="" Description="" Type="Variable" Display="advanced" Required="false" Mask="false">Europe/Berlin</Config>
   <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="" Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
   <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="" Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+  <Config Name="Pocket ID: Issuer" Target="OIDC_ISSUER" Default="" Mode="" Description="Optional: Anmeldung über Pocket ID, z. B. https://id.unheim.de. Leer = ohne Anmeldung" Type="Variable" Display="always" Required="false" Mask="false"></Config>
+  <Config Name="Pocket ID: Client-ID" Target="OIDC_CLIENT_ID" Default="" Mode="" Description="Aus dem OIDC-Client in Pocket ID" Type="Variable" Display="always" Required="false" Mask="false"></Config>
+  <Config Name="Pocket ID: Client-Secret" Target="OIDC_CLIENT_SECRET" Default="" Mode="" Description="Aus dem OIDC-Client in Pocket ID" Type="Variable" Display="always" Required="false" Mask="true"></Config>
+  <Config Name="Pocket ID: erlaubte Gruppen" Target="OIDC_ALLOWED_GROUPS" Default="" Mode="" Description="Optional, kommagetrennt. Leer = alle, die Pocket ID für diesen Client zulässt" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
 </Container>
