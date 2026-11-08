@@ -22,7 +22,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.config["POCKETID"] = pocketid.PocketID()
 SESSION_COOKIE = "trophaeen_session"
 SESSION_MAX_AGE = 180 * 86400
-OPEN_PATHS = {"/healthz", "/manifest.webmanifest", "/static/icon.svg",
+OPEN_PATHS = {"/healthz", "/manifest.webmanifest", "/static/icon.svg", "/static/icon-512.png",
               "/auth/pocketid", "/auth/pocketid/zurueck", "/auth/abmelden"}
 
 PLATFORMS = ["steam", "playstation", "xbox", "nintendo", "other"]

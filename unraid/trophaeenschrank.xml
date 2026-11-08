@@ -11,7 +11,7 @@
   <Overview>Selbst gehosteter Tracker für 100-%-Spiele und Platin-Trophäen (Steam, PlayStation, Xbox, manuell) mit umschaltbaren Cover-Stilen.</Overview>
   <Category>Tools: Other:</Category>
   <WebUI>http://[IP]:[PORT:8766]/</WebUI>
-  <Icon>https://raw.githubusercontent.com/shakanuga/Trophaeenschrank/main/app/static/icon.svg</Icon>
+  <Icon>https://raw.githubusercontent.com/shakanuga/Trophaeenschrank/main/app/static/icon-512.png</Icon>
   <Config Name="Web-UI Port" Target="8766" Default="8766" Mode="tcp" Description="Port der Weboberfläche" Type="Port" Display="always" Required="true" Mask="false">8766</Config>
   <Config Name="Daten" Target="/data" Default="/mnt/user/appdata/trophaeenschrank" Mode="rw" Description="Datenbank und Cover-Cache" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/trophaeenschrank</Config>
   <Config Name="Zeitzone" Target="TZ" Default="Europe/Berlin" Mode="" Description="" Type="Variable" Display="advanced" Required="false" Mask="false">Europe/Berlin</Config>
