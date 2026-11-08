@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Hüllen-Logik angelehnt an steam-case-covers, Copyright (C) 2026 Diego Bergonsi
+# https://github.com/diegobergonsi/steam-case-covers (GPL-3.0-or-later)
 """Cover im Stil einer Spielhülle (Steam-, PlayStation-, Xbox- oder Switch-Case).
 
 Die Hüllen-Grafiken stammen aus https://github.com/diegobergonsi/steam-case-covers (GPL-3.0).

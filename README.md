@@ -63,3 +63,10 @@ pip install -r requirements.txt
 DATA_DIR=./data flask --app app.main run --port 8766
 python -m tests.test_app   # Tests mit nachgebauten API-Antworten
 ```
+
+## Lizenz
+
+GPL-3.0-or-later, siehe [LICENSE](LICENSE).
+
+Die Spielhüllen-Funktion (`app/casecover.py`) ist an [steam-case-covers](https://github.com/diegobergonsi/steam-case-covers) von Diego Bergonsi angelehnt (ebenfalls GPL-3.0). Dessen Grafiken und die Schrift Nunito Sans (SIL OFL 1.1) sind nicht in diesem Repo enthalten, sondern werden zur Laufzeit von GitHub geladen. Marken wie Steam, PlayStation, Xbox und Nintendo gehören ihren jeweiligen Inhabern; dieses Projekt steht mit keinem dieser Unternehmen in Verbindung.
+
