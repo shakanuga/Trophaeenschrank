@@ -1,0 +1,14 @@
+services:
+  trophaeenschrank:
+    build: .
+    image: trophaeenschrank:latest
+    container_name: trophaeenschrank
+    restart: unless-stopped
+    ports:
+      - "8766:8766"
+    environment:
+      - TZ=Europe/Berlin
+      - PUID=99
+      - PGID=100
+    volumes:
+      - /mnt/user/appdata/trophaeenschrank:/data

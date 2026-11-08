@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14161c">
+<title>Trophäenschrank</title>
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><img src="/static/icon.svg" alt=""><span>Trophäenschrank</span></div>
+  <input id="search" type="search" placeholder="Spiel suchen …" autocomplete="off">
+  <div class="actions">
+    <select id="styleSelect" title="Cover-Stil"></select>
+    <button id="syncBtn" class="btn" title="Jetzt abgleichen"><span class="ico">⟳</span><span class="lbl">Abgleich</span></button>
+    <button id="addBtn" class="btn" title="Spiel hinzufügen">＋</button>
+    <button id="settingsBtn" class="btn" title="Einstellungen">⚙</button>
+  </div>
+  <div id="syncBar" class="syncbar hidden"><div></div></div>
+</header>
+
+<main>
+  <section id="hero" class="hero hidden"></section>
+
+  <section class="stats" id="stats"></section>
+
+  <section class="filters">
+    <div class="chips" id="platformChips"></div>
+    <div class="chips" id="statusChips"></div>
+    <div class="row">
+      <label>Sortieren
+        <select id="sortSelect">
+          <option value="smart">Zuletzt aktiv</option>
+          <option value="completed">Abschlussdatum</option>
+          <option value="played">Zuletzt gespielt</option>
+          <option value="title">Name</option>
+          <option value="progress">Fortschritt</option>
+          <option value="playtime">Spielzeit</option>
+        </select>
+      </label>
+      <label>Jahr <select id="yearSelect"><option value="">Alle</option></select></label>
+      <label>Tag <select id="tagSelect"><option value="">Alle</option></select></label>
+      <label class="check"><input type="checkbox" id="groupYear"> nach Jahr gruppieren</label>
+      <label class="check"><input type="checkbox" id="showHidden"> Ausgeblendete</label>
+      <span class="count" id="countLabel"></span>
+    </div>
+  </section>
+
+  <section id="grid" class="grid"></section>
+  <div id="empty" class="empty hidden"></div>
+</main>
+
+<!-- Detail -->
+<dialog id="detailDlg" class="dlg wide"></dialog>
+<!-- Cover-Auswahl -->
+<dialog id="coverDlg" class="dlg wide">
+  <div class="dlg-head"><h2>Cover wählen</h2><button class="x" data-close>✕</button></div>
+  <div class="cover-url">
+    <input id="coverUrl" placeholder="Eigene Bild-URL einfügen …">
+    <button class="btn primary" id="coverUrlBtn">Übernehmen</button>
+    <button class="btn" id="coverResetBtn">Zurücksetzen</button>
+  </div>
+  <div id="coverOptions" class="cover-options"></div>
+</dialog>
+<!-- Hinzufügen -->
+<dialog id="addDlg" class="dlg">
+  <form id="addForm" method="dialog">
+    <div class="dlg-head"><h2>Spiel hinzufügen</h2><button type="button" class="x" data-close>✕</button></div>
+    <label>Titel<input name="title" required></label>
+    <div class="two">
+      <label>Plattform
+        <select name="platform">
+          <option value="playstation">PlayStation</option>
+          <option value="nintendo">Nintendo</option>
+          <option value="xbox">Xbox</option>
+          <option value="steam">Steam</option>
+          <option value="other">Sonstige</option>
+        </select>
+      </label>
+      <label>Konsole / Variante<input name="sub_platform" placeholder="z.B. PS5, Switch"></label>
+    </div>
+    <div class="two">
+      <label>Status
+        <select name="status">
+          <option value="completed">100 % / Platin</option>
+          <option value="finished">Durchgespielt</option>
+          <option value="playing">Spielt gerade</option>
+          <option value="backlog">Backlog</option>
+          <option value="shelved">Pausiert</option>
+          <option value="none">Ohne Status</option>
+        </select>
+      </label>
+      <label>Abgeschlossen am<input type="date" name="completed_at"></label>
+    </div>
+    <div class="three">
+      <label>Erreicht<input type="number" name="unlocked" min="0"></label>
+      <label>Gesamt<input type="number" name="total" min="0"></label>
+      <label class="check"><input type="checkbox" name="platinum"> Platin</label>
+    </div>
+    <label>Tags (kommagetrennt)<input name="tags" placeholder="z.B. Koop, Lieblingsspiel"></label>
+    <label>Cover-URL (optional – sonst automatisch)<input name="cover_override"></label>
+    <div class="dlg-foot"><button class="btn primary" type="submit">Speichern</button></div>
+  </form>
+</dialog>
+<!-- Einstellungen -->
+<dialog id="settingsDlg" class="dlg wide">
+  <form id="settingsForm" method="dialog">
+    <div class="dlg-head"><h2>Einstellungen</h2><button type="button" class="x" data-close>✕</button></div>
+
+    <fieldset>
+      <legend>Steam <span class="state" data-state="steam"></span></legend>
+      <label>Web-API-Key <a href="https://steamcommunity.com/dev/apikey" target="_blank" rel="noopener">holen</a>
+        <input name="steam_api_key" autocomplete="off"></label>
+      <label>Steam-ID, Profil-URL oder Profilname
+        <input name="steam_id" placeholder="7656119… oder steamcommunity.com/id/name"></label>
+      <p class="hint">Im Steam-Profil muss unter Privatsphäre „Spieldetails“ auf <b>öffentlich</b> stehen, sonst sind die Erfolge nicht abrufbar.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>PlayStation <span class="state" data-state="playstation"></span></legend>
+      <label>NPSSO-Token
+        <input name="psn_npsso" autocomplete="off"></label>
+      <p class="hint">Bei <a href="https://www.playstation.com" target="_blank" rel="noopener">playstation.com</a> anmelden, dann
+        <a href="https://ca.account.sony.com/api/v1/ssocookie" target="_blank" rel="noopener">ca.account.sony.com/api/v1/ssocookie</a> öffnen
+        und den Wert von <code>npsso</code> hier einfügen. Läuft nach ca. 2 Monaten ab.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Xbox <span class="state" data-state="xbox"></span></legend>
+      <label>OpenXBL-API-Key <a href="https://xbl.io" target="_blank" rel="noopener">xbl.io</a>
+        <input name="xbl_api_key" autocomplete="off"></label>
+      <p class="hint">Nintendo hat keine Erfolge-Schnittstelle – Switch-Spiele trägst du über ＋ von Hand ein.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Cover</legend>
+      <label>SteamGridDB-API-Key <a href="https://www.steamgriddb.com/profile/preferences/api" target="_blank" rel="noopener">holen</a>
+        <input name="sgdb_api_key" autocomplete="off"></label>
+      <label>Eigene Cover-Quellen (eine pro Zeile: <code>Name | URL-Vorlage</code>)
+        <textarea name="custom_templates" rows="3" placeholder="Mein Repo | https://raw.githubusercontent.com/NUTZER/REPO/main/covers/{appid}.jpg"></textarea></label>
+      <p class="hint">Platzhalter: <code>{appid}</code> (Steam-AppID bzw. Plattform-ID), <code>{title}</code>, <code>{title_raw}</code>, <code>{slug}</code>, <code>{title_underscore}</code>, <code>{platform}</code>. Fehlt ein Bild, wird automatisch auf das offizielle Cover zurückgegriffen.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Spielhülle</legend>
+      <div class="two">
+        <label>Farbe der Steam-Hülle
+          <select name="case_color">
+            <option value="blau">Blau</option><option value="violett">Violett</option><option value="magenta">Magenta</option>
+            <option value="rot">Rot</option><option value="gold">Gold</option><option value="gruen">Grün</option>
+            <option value="schwarz">Schwarz</option><option value="grafit">Grafit</option><option value="silber">Silber</option>
+          </select></label>
+        <label>Auszeichnung für 100 %
+          <select name="case_marks">
+            <option value="full">Rosette + Band</option><option value="rosette">Nur Rosette</option>
+            <option value="gold">Goldrahmen + Rosette</option><option value="none">Keine</option>
+          </select></label>
+      </div>
+      <label>PlayStation-Spiele mit Platin
+        <select name="case_ps_platinum">
+          <option value="1">Platin-Trophäe + „PLATIN“-Band</option>
+          <option value="0">wie alle anderen (Rosette + „100% Complete“)</option>
+        </select></label>
+      <p class="hint">Steam-Spiele bekommen die Steam-Hülle, PlayStation-, Xbox- und Nintendo-Spiele die passende Konsolen-Hülle (nach Konsole, z.B. PS4/PS5).
+        Die Hüllen-Grafiken stammen aus <a href="https://github.com/diegobergonsi/steam-case-covers" target="_blank" rel="noopener">steam-case-covers</a> (GPL-3.0) und werden beim ersten Gebrauch von GitHub geladen.</p>
+      <div class="btnrow"><button type="button" class="btn" id="refreshCasesBtn">Hüllen neu von GitHub laden</button></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Abgleich</legend>
+      <div class="two">
+        <label>Automatisch alle … Stunden (0 = aus)<input type="number" name="sync_interval_hours" min="0" step="1"></label>
+        <label>Sprache der Erfolge
+          <select name="language"><option value="german">Deutsch</option><option value="english">Englisch</option></select></label>
+      </div>
+      <div class="btnrow">
+        <button type="button" class="btn" id="fullSyncBtn">Komplett neu abgleichen</button>
+        <button type="button" class="btn" id="clearCoversBtn">Cover-Cache leeren</button>
+        <a class="btn" href="/api/export">Backup exportieren</a>
+        <label class="btn file">Backup importieren<input type="file" id="importFile" accept="application/json"></label>
+      </div>
+    </fieldset>
+    <div class="dlg-foot"><button class="btn primary" type="submit">Speichern</button></div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
