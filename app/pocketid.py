@@ -5,7 +5,7 @@ PKCE, state und nonce. Das Token kommt direkt vom Token-Endpunkt über HTTPS, de
 Angaben im ID-Token (Aussteller, Empfänger, Ablauf, nonce) und holen den Rest vom Userinfo-Endpunkt.
 
 Einstellungen über Umgebungsvariablen:
-  OIDC_ISSUER            z. B. https://id.unheim.de (Pflicht)
+  OIDC_ISSUER            z. B. https://id.example.com (Pflicht)
   OIDC_CLIENT_ID         aus Pocket ID (Pflicht)
   OIDC_CLIENT_SECRET     aus Pocket ID (Pflicht)
   OIDC_REDIRECT_URI      optional, sonst aus der aufgerufenen Adresse gebildet
