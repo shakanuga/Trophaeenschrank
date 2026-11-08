@@ -120,6 +120,32 @@ def _steam_details(g):
     _set_meta(g["id"], details_ts=db.now())
 
 
+_steamid_cache = {}
+
+
+def _steam_player(g):
+    """Eigenen Stand (freigeschaltet + Datum) für ein Spiel laden."""
+    from .sync import steam_resolve_id
+    key, sid = db.get_setting("steam_api_key"), db.get_setting("steam_id")
+    if not key or not sid:
+        return
+    if sid not in _steamid_cache:
+        _steamid_cache[sid] = steam_resolve_id(key, sid)
+    lang = db.get_setting("language", "german") or "german"
+    r = requests.get(f"{STEAM_API}/ISteamUserStats/GetPlayerAchievements/v1/",
+                     params={"key": key, "steamid": _steamid_cache[sid], "appid": g["ext_id"], "l": lang},
+                     headers=UA, timeout=20)
+    if r.ok:
+        store_steam(g["id"], (r.json().get("playerstats") or {}).get("achievements") or [])
+
+
+def _out_of_sync(g):
+    """Stimmt die Zahl der freigeschalteten Einzelerfolge nicht mit dem Spiel überein?"""
+    row = db.conn().execute("SELECT COUNT(*) n, COALESCE(SUM(unlocked), 0) u FROM achievements WHERE game_id=?",
+                            (g["id"],)).fetchone()
+    return row["n"] == 0 or row["u"] != (g["unlocked"] or 0)
+
+
 # ------------------------------------------------------- PlayStation -----
 
 PSN_API = "https://m.np.playstation.com/api/trophy/v1"
@@ -191,9 +217,11 @@ def ensure_details(g, force=False):
         if g["platform"] == "steam":
             if force or not m["details_ts"]:
                 _steam_details(g)
+            if force or _out_of_sync(g):
+                _steam_player(g)
             if force or db.now() - m["rarity_ts"] > RARITY_TTL:
                 store_rarity(g["id"], steam_rarity(g["ext_id"]))
-        elif force or not m["details_ts"] or db.now() - m["rarity_ts"] > RARITY_TTL:
+        elif force or not m["details_ts"] or db.now() - m["rarity_ts"] > RARITY_TTL or _out_of_sync(g):
             _psn_details(g)
     except Exception as e:  # noqa: BLE001 – Details sind nett, aber nicht nötig
         log.warning("Erfolge für %s: %s", g["title"], e)

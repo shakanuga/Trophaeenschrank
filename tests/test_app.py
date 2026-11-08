@@ -235,6 +235,14 @@ def run():
     assert a0["name"] == "Erfolg 0" and a0["icon"] and a0["rarity"] == 80.0, a0
     assert d["achievements"][3]["hidden"] == 1
     assert d["summary"]["max_100_pct"] == 8.0, d["summary"]["max_100_pct"]
+    # Altbestand: Spiel ohne gespeicherte Einzelerfolge → beim Öffnen eigener Stand nachladen
+    jedi = g("STAR WARS Jedi: Survivor")
+    db.conn().execute("DELETE FROM achievements WHERE game_id=?", (jedi["id"],))
+    db.conn().execute("DELETE FROM ach_meta WHERE game_id=?", (jedi["id"],))
+    db.conn().commit()
+    d = c.get(f"/api/games/{jedi['id']}/achievements").get_json()
+    assert d["summary"]["unlocked"] == jedi["unlocked"] and d["summary"]["unlocked"] > 0, (d["summary"]["unlocked"], jedi["unlocked"])
+    assert d["achievements"][0]["unlock_time"] > 0 and d["achievements"][0]["icon"]
     gh = g("Ghost of Tsushima")
     d = c.get(f"/api/games/{gh['id']}/achievements").get_json()
     assert d["summary"]["types"][0]["key"] == "platinum" and d["summary"]["types"][0]["total"] == 1 and d["achievements"][0]["name"], d
