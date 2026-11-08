@@ -49,6 +49,27 @@ CREATE TABLE IF NOT EXISTS cover_cache (
     ts       INTEGER,
     PRIMARY KEY (game_id, source)
 );
+CREATE TABLE IF NOT EXISTS achievements (
+    game_id      INTEGER NOT NULL,
+    api_name     TEXT NOT NULL,          -- Steam-apiname / PSN-trophyId
+    name         TEXT DEFAULT '',
+    description  TEXT DEFAULT '',
+    icon         TEXT DEFAULT '',
+    icon_gray    TEXT DEFAULT '',
+    hidden       INTEGER DEFAULT 0,
+    trophy_type  TEXT DEFAULT '',        -- PSN: bronze/silver/gold/platinum
+    unlocked     INTEGER DEFAULT 0,
+    unlock_time  INTEGER DEFAULT 0,
+    rarity       REAL,                   -- Anteil aller Spieler in %, NULL = unbekannt
+    sort         INTEGER DEFAULT 0,
+    PRIMARY KEY (game_id, api_name)
+);
+CREATE INDEX IF NOT EXISTS ach_time ON achievements(unlock_time);
+CREATE TABLE IF NOT EXISTS ach_meta (
+    game_id      INTEGER PRIMARY KEY,
+    details_ts   INTEGER DEFAULT 0,      -- Namen/Icons geladen
+    rarity_ts    INTEGER DEFAULT 0       -- Seltenheit geladen
+);
 CREATE TABLE IF NOT EXISTS sgdb_ids (
     game_id  INTEGER PRIMARY KEY,
     sgdb_id  INTEGER

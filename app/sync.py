@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 import requests
 
-from . import db
+from . import achievements, db
 
 log = logging.getLogger("sync")
 UA = {"User-Agent": "Trophaeenschrank/1.0 (self-hosted)"}
@@ -209,13 +209,20 @@ def sync_steam(full=False):
         ach = ps.get("achievements") or []
         unlocked = [x for x in ach if x.get("achieved")]
         last_unlock = max((x.get("unlocktime", 0) for x in unlocked), default=0)
-        upsert_synced(
+        cur = upsert_synced(
             "steam", appid, g.get("name", f"App {appid}"),
             unlocked=len(unlocked), total=len(ach),
             completed_candidate=last_unlock,
             playing=g.get("playtime_2weeks", 0) > 0,
             ach_checked_lp=int(g.get("rtime_last_played") or 0),
         )
+        if ach:
+            achievements.store_steam(cur["id"], ach)
+            if unlocked and achievements.rarity_due(cur["id"]):
+                try:
+                    achievements.store_rarity(cur["id"], achievements.steam_rarity(appid))
+                except requests.RequestException as e:
+                    log.debug("Seltenheit %s: %s", appid, e)
         if i % 20 == 0:
             c.commit()
         time.sleep(0.15)
@@ -256,20 +263,19 @@ def _psn_token(npsso):
     return r.json()["access_token"]
 
 
-def _psn_platinum_date(tok, npid, platform):
-    service = "trophy" if any(p in platform for p in ("PS3", "PS4", "PSVITA")) else "trophy2"
+def _psn_user_trophies(tok, npid, platform):
     r = requests.get(
         f"{PSN_API}/users/me/npCommunicationIds/{npid}/trophyGroups/all/trophies",
-        params={"npServiceName": service},
+        params={"npServiceName": achievements.psn_service(platform)},
         headers={**UA, "Authorization": f"Bearer {tok}"}, timeout=30,
     )
-    if not r.ok:
-        return 0
-    dates = [_iso_to_ts(t.get("earnedDateTime")) for t in r.json().get("trophies", [])
-             if t.get("earned")]
-    plat = [_iso_to_ts(t.get("earnedDateTime")) for t in r.json().get("trophies", [])
-            if t.get("earned") and t.get("trophyType") == "platinum"]
-    return (plat or [max(dates, default=0)])[0]
+    return r.json().get("trophies", []) if r.ok else None
+
+
+def _psn_completion_date(trophies):
+    earned = [t for t in trophies if t.get("earned")]
+    plat = [_iso_to_ts(t.get("earnedDateTime")) for t in earned if t.get("trophyType") == "platinum"]
+    return (plat or [max((_iso_to_ts(t.get("earnedDateTime")) for t in earned), default=0)])[0]
 
 
 def sync_playstation(full=False):
@@ -291,7 +297,7 @@ def sync_playstation(full=False):
 
     c = db.conn()
     known = {r["ext_id"]: dict(r) for r in c.execute(
-        "SELECT ext_id, completed_at, platinum FROM games WHERE platform='playstation'")}
+        "SELECT ext_id, completed_at, platinum, last_played FROM games WHERE platform='playstation'")}
     progress.set(total=len(titles), done=0)
     for i, t in enumerate(titles, 1):
         npid = t["npCommunicationId"]
@@ -301,16 +307,23 @@ def sync_playstation(full=False):
         total = sum(defined.get(k, 0) for k in ("bronze", "silver", "gold", "platinum"))
         updated = _iso_to_ts(t.get("lastUpdatedDateTime"))
         has_plat = bool(earned.get("platinum"))
-        cand = updated
         prev = known.get(npid)
-        if (has_plat or (total and unlocked >= total)) and (full or not prev or not prev["completed_at"]):
+        changed = full or not prev or prev["last_played"] != updated
+        trophies = None
+        if changed and unlocked:
             try:
-                cand = _psn_platinum_date(tok, npid, t.get("trophyTitlePlatform", "")) or updated
-            except requests.RequestException:
-                pass
+                trophies = _psn_user_trophies(tok, npid, t.get("trophyTitlePlatform", ""))
+            except requests.RequestException as e:
+                log.debug("PSN-Trophäen %s: %s", npid, e)
+        cand = updated
+        if has_plat or (total and unlocked >= total):
+            if trophies:
+                cand = _psn_completion_date(trophies) or updated
+            elif prev and prev["completed_at"]:
+                cand = prev["completed_at"]
         elif prev and prev["completed_at"]:
             cand = prev["completed_at"]
-        upsert_synced(
+        cur = upsert_synced(
             "playstation", npid, t.get("trophyTitleName", npid),
             sub_platform=t.get("trophyTitlePlatform", ""),
             unlocked=unlocked, total=total, platinum=1 if has_plat else 0,
@@ -318,6 +331,8 @@ def sync_playstation(full=False):
             completed_candidate=cand,
             playing=(db.now() - updated) < PLAYING_WINDOW,
         )
+        if trophies:
+            achievements.store_psn_earned(cur["id"], trophies)
     c.commit()
     return f"{len(titles)} Trophäenlisten aktualisiert"
 

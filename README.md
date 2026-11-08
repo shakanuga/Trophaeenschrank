@@ -8,6 +8,9 @@ Selbst gehosteter Tracker für 100-%-Spiele und Platin-Trophäen – im Look der
 - **Nintendo / Sonstige**: von Hand über ＋ (Nintendo hat keine Erfolge-Schnittstelle).
 - Status-Bänder wie in Steam: **Spielt · Durchgespielt · 100 % · Platin · Backlog · Pausiert**, dazu eigene Tags, Notizen, Filter nach Plattform/Status/Jahr/Tag, Gruppierung nach Jahr, Jahresstatistik.
 - **Cover-Stile umschaltbar** (Auswahl oben rechts): offizielle Steam-Cover, SteamGridDB-Stile (Alternate, Material, White Logo, Ohne Logo, Blurred) und beliebig viele **eigene Quellen per URL-Vorlage**, z. B. ein GitHub-Repo. Pro Spiel kann man zusätzlich ein Cover aus allen Vorschlägen auswählen oder eine eigene URL einfügen. Cover werden lokal gecacht.
+- **Erfolge pro Spiel** (Steam und PlayStation): alle Erfolge/Trophäen mit Icon, Datum und Seltenheit, „Wie exklusiv sind 100 %?“, die leichtesten noch offenen, versteckte Erfolge hinter einer Spoiler-Sperre.
+- **Vitrine**: deine 100-%-Spiele im Trophäenschrank mit Spots und Namensschildern.
+- **Statistik**: Erfolge pro Tag (Kalender), nach Wochentag und Uhrzeit, pro Monat, Seltenheits-Verteilung, seltenste Erfolge, 100 % pro Jahr.
 - Automatischer Abgleich im Hintergrund (Standard: alle 6 Stunden), Backup als JSON exportieren/importieren.
 
 ## Installation (Unraid / Docker)

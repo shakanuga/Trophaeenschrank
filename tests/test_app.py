@@ -61,6 +61,16 @@ def fake_get(url, params=None, **kw):
         return Resp(OWNED)
     if "ResolveVanityURL" in url:
         return Resp({"response": {"success": 1, "steamid": "76561190000000000"}})
+    if "GetGlobalAchievementPercentagesForApp" in url:
+        a = ACH.get(str(params["gameid"])) or []
+        return Resp({"achievementpercentages": {"achievements": [
+            {"name": x["apiname"], "percent": str(round(80 - i * 1.5, 1))} for i, x in enumerate(a)]}})
+    if "GetSchemaForGame" in url:
+        a = ACH.get(str(params["appid"])) or []
+        return Resp({"game": {"availableGameStats": {"achievements": [
+            {"name": x["apiname"], "displayName": f"Erfolg {i}", "description": f"Beschreibung {i}",
+             "icon": f"https://img/ach{i}.jpg", "icongray": f"https://img/ach{i}g.jpg", "hidden": int(i == 3)}
+            for i, x in enumerate(a)]}}})
     if "GetPlayerAchievements" in url:
         a = ACH.get(str(params["appid"]))
         if a is None:
@@ -82,10 +92,12 @@ def fake_get(url, params=None, **kw):
              "lastUpdatedDateTime": "2024-01-01T10:00:00Z"},
         ], "totalItemCount": 2})
     if "/trophies" in url:
-        assert params["npServiceName"] == "trophy2"
+        assert params["npServiceName"] in ("trophy", "trophy2")
         return Resp({"trophies": [
-            {"trophyType": "bronze", "earned": True, "earnedDateTime": "2025-09-30T10:00:00Z"},
-            {"trophyType": "platinum", "earned": True, "earnedDateTime": "2025-10-01T21:15:00Z"}]})
+            {"trophyId": 1, "trophyName": "Erste", "trophyDetail": "x", "trophyIconUrl": "https://img/t1.png",
+             "trophyType": "bronze", "earned": True, "earnedDateTime": "2025-09-30T10:00:00Z", "trophyEarnedRate": "60.2"},
+            {"trophyId": 0, "trophyName": "Alle", "trophyDetail": "y", "trophyIconUrl": "https://img/t0.png",
+             "trophyType": "platinum", "earned": True, "earnedDateTime": "2025-10-01T21:15:00Z", "trophyEarnedRate": "3.1"}]})
     if "xbl.io" in url:
         return Resp({"titles": [{"titleId": "1234", "name": "Forza Horizon 5", "devices": ["XboxSeries"],
                                  "displayImage": "https://img/fh5.png",
@@ -215,6 +227,20 @@ def run():
         time.sleep(0.05)
     st = c.get("/api/sync/status").get_json()
     assert not st["running"] and not st["errors"], st
+    # Einzelerfolge: gespeichert beim Sync, Details beim Öffnen
+    wd = g("Watch_Dogs")
+    d = c.get(f"/api/games/{wd['id']}/achievements").get_json()
+    assert d["summary"]["total"] == 49 and d["summary"]["unlocked"] == 49, d["summary"]
+    a0 = d["achievements"][0]
+    assert a0["name"] == "Erfolg 0" and a0["icon"] and a0["rarity"] == 80.0, a0
+    assert d["achievements"][3]["hidden"] == 1
+    assert d["summary"]["max_100_pct"] == 8.0, d["summary"]["max_100_pct"]
+    gh = g("Ghost of Tsushima")
+    d = c.get(f"/api/games/{gh['id']}/achievements").get_json()
+    assert d["summary"]["types"][0]["key"] == "platinum" and d["summary"]["types"][0]["total"] == 1 and d["achievements"][0]["name"], d
+    st = c.get("/api/stats/achievements").get_json()
+    assert st["total"] >= 49 and len(st["heatmap"]) == 7 and len(st["calendar"]) == 365, st["total"]
+    assert st["rarest"][0]["rarity"] <= st["rarest"][-1]["rarity"]
     print("Alle Tests bestanden.")
 
 

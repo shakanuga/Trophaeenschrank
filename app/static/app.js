@@ -25,7 +25,7 @@ const state = {
   styles: [],
   stats: null,
   view: Object.assign(
-    { platforms: [], statuses: ["completed", "finished", "playing"], sort: "smart", year: "", tag: "", group: false, hidden: false, q: "" },
+    { mode: "grid", platforms: [], statuses: ["completed", "finished", "playing"], sort: "smart", year: "", tag: "", group: false, hidden: false, q: "" },
     JSON.parse(localStorage.getItem(LS) || "{}")
   ),
   current: null,
@@ -232,8 +232,16 @@ function cardHtml(g) {
 }
 
 function renderGrid() {
+  const mode = state.view.mode || "grid";
+  document.body.dataset.mode = mode;
+  document.querySelectorAll("#modeTabs button").forEach((b) => b.classList.toggle("on", b.dataset.mode === mode));
+  $("#statsView").classList.toggle("hidden", mode !== "stats");
+  $("#grid").classList.toggle("hidden", mode === "stats");
+  if (mode === "stats") { $("#empty").classList.add("hidden"); return renderStatsView(); }
+  if (mode === "vitrine") return renderVitrine();
   const list = filtered();
   const grid = $("#grid");
+  grid.className = "grid";
   $("#countLabel").textContent = `${list.length} von ${baseList().length} Spielen`;
   const empty = $("#empty");
   if (!state.games.length) {
@@ -261,8 +269,12 @@ function renderGrid() {
   } else grid.innerHTML = list.map(cardHtml).join("");
 }
 
+document.querySelectorAll("#modeTabs button").forEach((b) => b.onclick = () => {
+  state.view.mode = b.dataset.mode; saveView(); renderGrid(); scrollTo({ top: 0 });
+});
+
 $("#grid").addEventListener("click", (e) => {
-  const c = e.target.closest(".card");
+  const c = e.target.closest(".card, .shelf-item");
   if (c) openDetail(Number(c.dataset.id));
 });
 
@@ -320,8 +332,10 @@ function openDetail(id) {
           </div>
         </form>
       </div>
-    </div>`;
+    </div>
+    ${["steam", "playstation"].includes(g.platform) && !g.manual ? `<section id="achBox" class="ach-box"><p class="hint">Lade ${unit} …</p></section>` : ""}`;
   dlg.showModal();
+  if ($("#achBox")) loadAchievements(g);
   $("#pickCover").onclick = () => openCoverPicker(g);
   $("#hideBtn").onclick = async () => {
     if (g.manual) {

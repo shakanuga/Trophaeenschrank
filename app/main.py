@@ -11,7 +11,7 @@ from urllib.parse import quote, urlsplit
 from flask import Flask, Response, abort, jsonify, redirect, request, send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import covers, db, pocketid, sync
+from . import achievements, covers, db, pocketid, sync
 
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"),
                     format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -304,6 +304,18 @@ def stats():
 
 
 # ------------------------------------------------------- Einstellungen ----
+
+@app.get("/api/games/<int:gid>/achievements")
+def game_achievements(gid):
+    g = game_or_404(gid)
+    achievements.ensure_details(g, force=request.args.get("refresh") == "1")
+    return jsonify(achievements.for_game(g))
+
+
+@app.get("/api/stats/achievements")
+def achievement_stats():
+    return jsonify(achievements.global_stats(request.args.get("year") or None))
+
 
 @app.get("/api/settings")
 def get_settings():

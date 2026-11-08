@@ -27,6 +27,10 @@
 
   <section class="stats" id="stats"></section>
 
+  <nav class="modes" id="modeTabs">
+    <button data-mode="grid">Raster</button><button data-mode="vitrine">Vitrine</button><button data-mode="stats">Statistik</button>
+  </nav>
+
   <section class="filters">
     <div class="chips" id="platformChips"></div>
     <div class="chips" id="statusChips"></div>
@@ -50,6 +54,7 @@
   </section>
 
   <section id="grid" class="grid"></section>
+  <section id="statsView" class="statsview hidden"></section>
   <div id="empty" class="empty hidden"></div>
 </main>
 
@@ -189,5 +194,6 @@
 
 <div id="toast" class="toast hidden"></div>
 <script src="/static/app.js"></script>
+<script src="/static/views.js"></script>
 </body>
 </html>
