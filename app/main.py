@@ -251,7 +251,7 @@ def cover(gid):
         resp = send_from_directory(covers.COVER_DIR, f, max_age=7 * 86400)
         return resp
     return Response(covers.placeholder_svg(g), mimetype="image/svg+xml",
-                    headers={"Cache-Control": "max-age=3600"})
+                    headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/api/games/<int:gid>/cover-options")

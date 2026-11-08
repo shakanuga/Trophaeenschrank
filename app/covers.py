@@ -1,6 +1,7 @@
 """Cover-Quellen: Steam (offiziell), SteamGridDB-Stile, eigene URL-Vorlagen (z.B. GitHub-Repos)."""
 import hashlib
 import html
+import json
 import logging
 import os
 import re
@@ -78,6 +79,51 @@ def steam_urls(appid):
     ]
 
 
+STORE_CDN = "https://shared.fastly.steamstatic.com/store_item_assets/"
+_store_cache = {}
+_store_lock = threading.Lock()
+
+
+def steam_store_assets(appid):
+    """Bild-Dateinamen aus Steams Store-API (kein Key nötig). Neuere Spiele liegen
+    unter Pfaden mit Hash, die man nur so findet."""
+    appid = int(appid)
+    with _store_lock:
+        if appid in _store_cache:
+            return _store_cache[appid]
+    q = json.dumps({"ids": [{"appid": appid}], "context": {"language": "english", "country_code": "US"},
+                    "data_request": {"include_assets": True}})
+    assets = {}
+    try:
+        r = requests.get("https://api.steampowered.com/IStoreBrowseService/GetItems/v1",
+                         params={"input_json": q}, headers=UA, timeout=20)
+        if r.ok:
+            items = r.json().get("response", {}).get("store_items") or [{}]
+            assets = items[0].get("assets") or {}
+    except (requests.RequestException, ValueError) as e:
+        log.debug("Store-Assets %s: %s", appid, e)
+        return {}  # nicht cachen, später erneut versuchen
+    with _store_lock:
+        _store_cache[appid] = assets
+    return assets
+
+
+def _store_urls(appid, keys):
+    a = steam_store_assets(appid)
+    fmt = a.get("asset_url_format")
+    return [STORE_CDN + fmt.replace("${FILENAME}", a[k]) for k in keys if fmt and a.get(k)]
+
+
+def steam_landscape_urls(appid):
+    """Querformat-Bilder, die es auch für ältere und aus dem Shop genommene Spiele fast immer gibt."""
+    return _store_urls(appid, ("header", "main_capsule")) + [
+        f"https://cdn.cloudflare.steamstatic.com/steam/apps/{appid}/header.jpg",
+        f"https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/{appid}/header.jpg",
+        f"https://cdn.cloudflare.steamstatic.com/steam/apps/{appid}/capsule_616x353.jpg",
+        f"https://steamcdn-a.akamaihd.net/steam/apps/{appid}/header.jpg",
+    ]
+
+
 # --------------------------------------------------------- SteamGridDB ----
 
 def _sgdb(path, params=None):
@@ -137,13 +183,18 @@ def candidate_urls(g, style):
     elif style.startswith("sgdb"):
         st = style.split(":")[1] if ":" in style else None
         out.append((style, lambda st=st: (sgdb_grids(g, st) or [{}])[0].get("url")))
-    # Fallbacks
+    # Fallbacks – zuerst echte Hochformat-Cover, zuletzt aus einem Querformat-Bild erzeugt
+    sgdb_top = ("sgdb", lambda: (sgdb_grids(g) or [{}])[0].get("url"))
     if g["platform"] == "steam":
-        out += [("official", u) for u in steam_urls(g["ext_id"])]
+        appid = g["ext_id"]
+        out += [("official", u) for u in steam_urls(appid)]
+        out.append(("store", lambda: _store_urls(appid, ("library_capsule_2x", "library_capsule"))))
+        out.append(sgdb_top)
+        out.append(("generated", lambda: [("portrait", u) for u in steam_landscape_urls(appid)]))
     else:
-        out.append(("sgdb", lambda: (sgdb_grids(g) or [{}])[0].get("url")))
+        out.append(sgdb_top)
         if g["cover_src"]:
-            out.append(("platform", g["cover_src"]))
+            out.append(("platform", [("portrait", g["cover_src"])]))
     return out
 
 
@@ -152,16 +203,25 @@ def _lock_for(key):
         return _fetch_locks.setdefault(key, threading.Lock())
 
 
-def _download(url):
+def _download(url, make_portrait=False):
     r = requests.get(url, headers=UA, timeout=20)
     ct = r.headers.get("content-type", "")
     if not r.ok or not ct.startswith("image/") or len(r.content) < 500:
         return None
+    data = r.content
     ext = {"image/png": "png", "image/webp": "webp", "image/gif": "gif"}.get(ct.split(";")[0], "jpg")
+    if make_portrait:
+        from . import portrait
+        try:
+            if not portrait.is_portrait(data):
+                data, ext = portrait.portraitize(data), "jpg"
+        except Exception as e:  # noqa: BLE001 – kaputtes Bild: nächste Quelle
+            log.debug("Hochformat aus %s: %s", url, e)
+            return None
     os.makedirs(COVER_DIR, exist_ok=True)
-    name = hashlib.sha1(url.encode()).hexdigest() + "." + ext
+    name = hashlib.sha1(((("p:" if make_portrait else "") + url)).encode()).hexdigest() + "." + ext
     with open(os.path.join(COVER_DIR, name), "wb") as fh:
-        fh.write(r.content)
+        fh.write(data)
     return name
 
 
@@ -182,15 +242,24 @@ def resolve(g, style):
         found, used_url = None, ""
         for _, cand in candidate_urls(g, style):
             try:
-                url = cand() if callable(cand) else cand
-                if not url:
+                urls = cand() if callable(cand) else cand
+            except requests.RequestException as e:
+                log.debug("Cover %s: %s", g["title"], e)
+                continue
+            if not urls:
+                continue
+            for u in (urls if isinstance(urls, list) else [urls]):
+                make_portrait, url = (True, u[1]) if isinstance(u, tuple) else (False, u)
+                try:
+                    found = _download(url, make_portrait)
+                except requests.RequestException as e:
+                    log.debug("Cover %s: %s", g["title"], e)
                     continue
-                found = _download(url)
                 if found:
                     used_url = url
                     break
-            except requests.RequestException as e:
-                log.debug("Cover %s: %s", g["title"], e)
+            if found:
+                break
         c.execute("INSERT OR REPLACE INTO cover_cache(game_id, source, url, file, ts) VALUES(?,?,?,?,?)",
                   (g["id"], cache_key, used_url, found or "", db.now()))
         c.commit()

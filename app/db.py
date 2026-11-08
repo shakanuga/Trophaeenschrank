@@ -71,6 +71,8 @@ def conn():
 def init():
     c = conn()
     c.executescript(SCHEMA)
+    # Fehlgeschlagene Cover-Suchen beim Start vergessen, damit neue Quellen greifen
+    c.execute("DELETE FROM cover_cache WHERE file='' OR file IS NULL")
     c.commit()
 
 

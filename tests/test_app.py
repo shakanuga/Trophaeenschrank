@@ -220,6 +220,54 @@ def run():
 
 
 
+def run_cover_fallback_test():
+    """Ältere/aus dem Shop genommene Spiele: kein library_600x900 → Store-API → erzeugtes Hochformat."""
+    import io
+    from PIL import Image
+    c = db.conn()
+    ts = db.now()
+    for appid, title in (("111", "Hash Game"), ("222", "Delisted Game"), ("333", "Nichts")):
+        c.execute("INSERT INTO games(platform, ext_id, title, status, created_at, updated_at) VALUES('steam',?,?,'completed',?,?)",
+                  (appid, title, ts, ts))
+    c.commit()
+    land = io.BytesIO()
+    Image.new("RGB", (460, 215), (200, 30, 30)).save(land, "JPEG")
+    seen = []
+
+    def get(url, params=None, **kw):
+        seen.append(url)
+        if "GetItems" in url:
+            import json as _j
+            appid = _j.loads(params["input_json"])["ids"][0]["appid"]
+            if appid == 111:
+                return Resp({"response": {"store_items": [{"assets": {
+                    "asset_url_format": "steam/apps/111/abc123/${FILENAME}?t=1",
+                    "library_capsule": "library_600x900.jpg", "header": "header.jpg"}}]}})
+            return Resp({"response": {"store_items": [{"success": 2}]}})
+        if "abc123/library_600x900.jpg" in url:
+            return Resp(status=200, headers={"content-type": "image/jpeg"}, content=JPEG)
+        if "/222/header.jpg" in url:
+            return Resp(status=200, headers={"content-type": "image/jpeg"}, content=land.getvalue())
+        return Resp(status=404, headers={"content-type": "text/html"})
+
+    covers.requests.get = get
+    cl = app.test_client()
+    ids = {r["title"]: r["id"] for r in c.execute("SELECT id, title FROM games WHERE ext_id IN ('111','222','333')")}
+    r = cl.get(f"/cover/{ids['Hash Game']}?style=official")
+    assert r.mimetype == "image/jpeg" and r.data == JPEG, "Store-API-Cover nicht genutzt"
+    r = cl.get(f"/cover/{ids['Delisted Game']}?style=official")
+    im = Image.open(io.BytesIO(r.data))
+    assert r.mimetype == "image/jpeg" and im.size == (600, 900), (r.mimetype, im.size)
+    im.save(os.path.join(TMP, "generated.jpg"))
+    r = cl.get(f"/cover/{ids['Nichts']}?style=official")
+    assert r.mimetype == "image/svg+xml" and r.headers["Cache-Control"] == "no-cache"
+    # Neustart vergisst Fehlschläge
+    db.init()
+    assert c.execute("SELECT COUNT(*) n FROM cover_cache WHERE file=''").fetchone()["n"] == 0
+    covers.requests.get = fake_get
+    print("Cover-Fallback-Test bestanden")
+
+
 def run_case_test(repo_assets):
     """Spielhülle mit den echten Grafiken aus einem lokalen Klon von steam-case-covers."""
     from app import casecover
@@ -263,5 +311,6 @@ def run_case_test(repo_assets):
 
 if __name__ == "__main__":
     run()
+    run_cover_fallback_test()
     if len(sys.argv) > 1:
         run_case_test(sys.argv[1])
