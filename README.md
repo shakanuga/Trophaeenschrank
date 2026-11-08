@@ -12,9 +12,14 @@ Selbst gehosteter Tracker für 100-%-Spiele und Platin-Trophäen – im Look der
 
 ## Installation (Unraid / Docker)
 
+Das fertige Image wird bei jedem Push automatisch gebaut: `ghcr.io/shakanuga/trophaeenschrank:latest` (amd64 und arm64).
+
+**Unraid:** Docker → „Add Container“ und das Template aus `unraid/trophaeenschrank.xml` nutzen – oder von Hand: Repository `ghcr.io/shakanuga/trophaeenschrank:latest`, Port `8766`, Pfad `/data` → `/mnt/user/appdata/trophaeenschrank`.
+
+**Docker Compose:**
+
 ```bash
-# Repo klonen, dann im Ordner:
-docker compose up -d --build
+docker compose up -d
 ```
 
 Danach `http://<server>:8766` öffnen. Daten liegen in `/mnt/user/appdata/trophaeenschrank` (SQLite + Cover-Cache). Der Container läuft als `99:100` (nobody:users).

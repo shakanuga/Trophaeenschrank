@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>trophaeenschrank</Name>
+  <Repository>ghcr.io/shakanuga/trophaeenschrank:latest</Repository>
+  <Registry>https://github.com/shakanuga/Trophaeenschrank/pkgs/container/trophaeenschrank</Registry>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/shakanuga/Trophaeenschrank/issues</Support>
+  <Project>https://github.com/shakanuga/Trophaeenschrank</Project>
+  <Overview>Selbst gehosteter Tracker für 100-%-Spiele und Platin-Trophäen (Steam, PlayStation, Xbox, manuell) mit umschaltbaren Cover-Stilen.</Overview>
+  <Category>Tools: Other:</Category>
+  <WebUI>http://[IP]:[PORT:8766]/</WebUI>
+  <Icon>https://raw.githubusercontent.com/shakanuga/Trophaeenschrank/main/app/static/icon.svg</Icon>
+  <Config Name="Web-UI Port" Target="8766" Default="8766" Mode="tcp" Description="Port der Weboberfläche" Type="Port" Display="always" Required="true" Mask="false">8766</Config>
+  <Config Name="Daten" Target="/data" Default="/mnt/user/appdata/trophaeenschrank" Mode="rw" Description="Datenbank und Cover-Cache" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/trophaeenschrank</Config>
+  <Config Name="Zeitzone" Target="TZ" Default="Europe/Berlin" Mode="" Description="" Type="Variable" Display="advanced" Required="false" Mask="false">Europe/Berlin</Config>
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="" Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="" Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+</Container>

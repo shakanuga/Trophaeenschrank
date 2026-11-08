@@ -1,7 +1,8 @@
 services:
   trophaeenschrank:
-    build: .
-    image: trophaeenschrank:latest
+    image: ghcr.io/shakanuga/trophaeenschrank:latest
+    # Selbst bauen statt fertiges Image ziehen: nächste Zeile einkommentieren
+    # build: .
     container_name: trophaeenschrank
     restart: unless-stopped
     ports:
