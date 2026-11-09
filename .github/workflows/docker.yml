@@ -53,7 +53,7 @@ jobs:
             org.opencontainers.image.title=Trophäenschrank
             org.opencontainers.image.description=Selbst gehosteter Tracker für 100-%-Spiele und Platin-Trophäen
             org.opencontainers.image.licenses=GPL-3.0-or-later
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
