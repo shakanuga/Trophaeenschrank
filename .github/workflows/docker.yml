@@ -6,6 +6,9 @@ on:
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+  schedule:
+    # jeden Sonntag 04:17 UTC neu bauen – holt Sicherheitsupdates des Basis-Images
+    - cron: "17 4 * * 0"
 
 env:
   IMAGE: ghcr.io/shakanuga/trophaeenschrank
