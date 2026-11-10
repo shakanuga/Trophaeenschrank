@@ -317,6 +317,27 @@ def achievement_stats():
     return jsonify(achievements.global_stats(request.args.get("year") or None))
 
 
+@app.get("/api/export/showcase.png")
+def export_showcase():
+    from . import showcase
+    a = request.args
+    try:
+        limit = max(0, min(200, int(a.get("limit") or 20)))
+        scale = 2 if a.get("scale") == "2" else 1
+    except ValueError:
+        return jsonify(error="Ungültige Anzahl"), 400
+    data, (w, h), shown, total = showcase.render(
+        fmt=a.get("format", "featured"), platform=a.get("platform", ""), year=a.get("year", ""),
+        limit=limit, style=a.get("style") or db.get_setting("cover_style", "official") or "official",
+        title=(a.get("title") or "")[:60], show_dates=a.get("dates", "1") == "1",
+        show_stats=a.get("stats", "1") == "1", scale=scale)
+    headers = {"Cache-Control": "no-store", "X-Image-Size": f"{w}x{h}", "X-Games": f"{shown}/{total}",
+               "X-Bytes": str(len(data)), "Access-Control-Expose-Headers": "X-Image-Size, X-Games, X-Bytes"}
+    if a.get("download") == "1":
+        headers["Content-Disposition"] = f"attachment; filename=trophaeenschrank-{w}px.png"
+    return Response(data, mimetype="image/png", headers=headers)
+
+
 @app.get("/api/settings")
 def get_settings():
     s = db.all_settings()

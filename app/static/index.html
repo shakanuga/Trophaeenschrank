@@ -192,6 +192,50 @@
   </form>
 </dialog>
 
+<!-- Showcase-Bild -->
+<dialog id="showcaseDlg" class="dlg wide">
+  <div class="dlg-head" style="margin:0 0 12px"><h2>Bild fürs Steam-Profil</h2><button class="x" data-close>✕</button></div>
+  <div class="showcase">
+    <form id="showcaseForm" class="sc-form">
+      <label>Format
+        <select name="format">
+          <option value="featured">Featured Artwork Showcase (630 px)</option>
+          <option value="artwork">Artwork Showcase, Hauptbild (506 px)</option>
+          <option value="wide">Breit zum Teilen (1920 px)</option>
+        </select></label>
+      <div class="two">
+        <label>Plattform
+          <select name="platform"><option value="">Alle</option><option value="steam">Steam</option>
+            <option value="playstation">PlayStation</option><option value="xbox">Xbox</option>
+            <option value="nintendo">Nintendo</option><option value="other">Sonstige</option></select></label>
+        <label>Jahr<select name="year" id="scYear"><option value="">Alle</option></select></label>
+      </div>
+      <div class="two">
+        <label>Anzahl (neueste zuerst)
+          <select name="limit"><option>10</option><option selected>20</option><option>30</option><option>50</option><option value="0">Alle</option></select></label>
+        <label>Cover-Stil<select name="style" id="scStyle"></select></label>
+      </div>
+      <label>Überschrift<input name="title" placeholder="Trophäenschrank" maxlength="60"></label>
+      <label class="check"><input type="checkbox" name="dates" checked> Abschlussdatum unter den Covern</label>
+      <label class="check"><input type="checkbox" name="stats" checked> Kennzahlen im Kopf</label>
+      <label class="check"><input type="checkbox" name="scale"> Doppelte Auflösung (schärfer auf großen Bildschirmen)</label>
+      <p class="hint" id="scInfo"></p>
+      <a class="btn primary" id="scDownload" download>PNG herunterladen</a>
+      <details class="sc-help"><summary>So kommt das Bild ins Steam-Profil</summary>
+        <ol>
+          <li>Steam im <b>Browser</b> öffnen (nicht im Steam-Programm) → dein Profil → <b>Artwork</b> → <b>Artwork hochladen</b>.</li>
+          <li>Datei wählen. Ist das Bild höher als breit, vor dem Hochladen in der Browser-Konsole (F12) eingeben:<br>
+            <code>$J('#image_width').val('1000');$J('#image_height').val('1');</code><br>Sonst schneidet Steam die Vorschau falsch zu.</li>
+          <li>Sichtbarkeit auf <b>Öffentlich</b>, Haken bei der Urheberschaft setzen, speichern.</li>
+          <li>Profil bearbeiten → <b>Vitrine</b> → beim 630-px-Bild „Featured Artwork Showcase“, beim 506-px-Bild die normale „Artwork Showcase“ wählen und das hochgeladene Bild zuweisen.</li>
+        </ol>
+        <p class="hint">Vitrinen gibt's ab Steam-Level 10. Cover gehören den jeweiligen Publishern – fürs eigene Profil ist das üblich, verkaufen solltest du das Bild nicht.</p>
+      </details>
+    </form>
+    <div class="sc-preview"><img id="scImg" alt="Vorschau"></div>
+  </div>
+</dialog>
+
 <div id="toast" class="toast hidden"></div>
 <script src="/static/app.js"></script>
 <script src="/static/views.js"></script>

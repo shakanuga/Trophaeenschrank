@@ -249,6 +249,17 @@ def run():
     st = c.get("/api/stats/achievements").get_json()
     assert st["total"] >= 49 and len(st["heatmap"]) == 7 and len(st["calendar"]) == 365, st["total"]
     assert st["rarest"][0]["rarity"] <= st["rarest"][-1]["rarity"]
+    # Showcase-Bild in den Steam-Formaten
+    import io as _io
+    from PIL import Image as _Image
+    for fmt, w in (("featured", 630), ("artwork", 506), ("wide", 1920)):
+        r = c.get(f"/api/export/showcase.png?format={fmt}&limit=10")
+        assert r.status_code == 200 and r.mimetype == "image/png", r.status_code
+        im = _Image.open(_io.BytesIO(r.data))
+        assert im.width == w and len(r.data) < 5_000_000, (fmt, im.size)
+    r = c.get("/api/export/showcase.png?format=featured&scale=2&download=1&platform=playstation")
+    assert _Image.open(_io.BytesIO(r.data)).width == 1260 and "attachment" in r.headers["Content-Disposition"]
+    assert r.headers["X-Games"] == "1/1", r.headers["X-Games"]
     print("Alle Tests bestanden.")
 
 

@@ -121,7 +121,7 @@ function renderVitrine() {
   grid.innerHTML = list.length ? `
     <div class="vitrine-head">
       <div><b>Trophäenschrank</b><span>${v.year ? `Abgeschlossen ${v.year}` : "Alle deine Spiele auf 100 %"}</span></div>
-      <div class="vchips"><span title="Spiele auf 100 %">🏆 ${nf(list.length)}</span>${plat ? `<span title="Platin-Trophäen">💎 ${plat}</span>` : ""}
+      <div class="vchips"><button class="btn" id="showcaseBtn" title="Übersicht als Bild exportieren, z.B. fürs Steam-Profil">🖼 Bild exportieren</button><span title="Spiele auf 100 %">🏆 ${nf(list.length)}</span>${plat ? `<span title="Platin-Trophäen">💎 ${plat}</span>` : ""}
         <span title="Erfolge in diesen Spielen">★ ${nf(ach)}</span>${hours ? `<span title="Spielzeit">⏱ ${nf(hours)} Std.</span>` : ""}</div>
     </div>
     <div class="shelves">${list.map((g) => `
@@ -131,6 +131,52 @@ function renderVitrine() {
         <div class="ledge"></div>
         <div class="plaque"><b>${esc(g.title)}</b><span>${g.completed_at ? fmtDate(g.completed_at) : ""}${g.platform !== "steam" ? ` · ${PLATFORMS[g.platform].label}` : ""}</span></div>
       </div>`).join("")}</div>` : "";
+  if ($("#showcaseBtn")) $("#showcaseBtn").onclick = (e) => { e.stopPropagation(); openShowcase(); };
+}
+
+// ------------------------------------------------------- Showcase-Bild ---
+function openShowcase() {
+  const dlg = $("#showcaseDlg"), form = $("#showcaseForm"), v = state.view;
+  const years = [...new Set(state.games.filter((g) => g.status === "completed").map((g) => yearOf(g.completed_at)).filter(Boolean))].sort((a, b) => b - a);
+  $("#scYear").innerHTML = `<option value="">Alle</option>` + years.map((y) => `<option>${y}</option>`).join("");
+  $("#scStyle").innerHTML = state.styles.map((s) => `<option value="${esc(s.id)}">${esc(s.label)}</option>`).join("");
+  $("#scStyle").value = state.settings.cover_style || "official";
+  form.year.value = v.year || "";
+  form.platform.value = v.platforms.length === 1 ? v.platforms[0] : "";
+  let timer, seq = 0;
+  const url = (download) => {
+    const f = new FormData(form), p = new URLSearchParams();
+    for (const k of ["format", "platform", "year", "limit", "style", "title"]) p.set(k, f.get(k) || "");
+    p.set("dates", f.get("dates") ? "1" : "0");
+    p.set("stats", f.get("stats") ? "1" : "0");
+    p.set("scale", f.get("scale") ? "2" : "1");
+    if (download) p.set("download", "1");
+    return `/api/export/showcase.png?${p}`;
+  };
+  const update = () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const my = ++seq;
+      $("#scInfo").textContent = "Bild wird erzeugt …";
+      try {
+        const r = await fetch(url(false));
+        if (!r.ok) throw new Error(`Fehler ${r.status}`);
+        const blob = await r.blob();
+        if (my !== seq) return;
+        const img = $("#scImg");
+        if (img.src.startsWith("blob:")) URL.revokeObjectURL(img.src);
+        img.src = URL.createObjectURL(blob);
+        const [shown, total] = (r.headers.get("X-Games") || "0/0").split("/");
+        const mb = (Number(r.headers.get("X-Bytes")) / 1e6).toLocaleString("de-DE", { maximumFractionDigits: 1 });
+        $("#scInfo").textContent = `${r.headers.get("X-Image-Size")} px · ${mb} MB · ${shown} von ${total} Spielen`;
+        $("#scDownload").href = url(true);
+      } catch (e) { if (my === seq) $("#scInfo").textContent = e.message; }
+    }, 250);
+  };
+  form.oninput = update;
+  form.onsubmit = (e) => e.preventDefault();
+  dlg.showModal();
+  update();
 }
 
 // ----------------------------------------------------------- Statistik ---

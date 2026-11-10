@@ -345,7 +345,22 @@ body[data-mode="vitrine"] .row label:has(#groupYear) { display: none; }
 .ritem b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ritem small { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Showcase-Export */
+.showcase { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 18px; padding: 0 18px 18px; }
+.sc-form label { margin-bottom: 8px; }
+.sc-form .dlg label.check, .sc-form label.check { margin: 2px 0 6px; display: flex; }
+.sc-form #scDownload { width: 100%; justify-content: center; margin: 4px 0 10px; }
+.sc-help { font-size: 13px; color: var(--muted); }
+.sc-help summary { cursor: pointer; color: var(--text); margin-bottom: 6px; }
+.sc-help ol { padding-left: 18px; margin: 0 0 6px; display: flex; flex-direction: column; gap: 6px; }
+.sc-help code { display: inline-block; margin: 3px 0; word-break: break-all; }
+.sc-preview { background: repeating-conic-gradient(#1a1d24 0 25%, #20242d 0 50%) 0 0/20px 20px; border-radius: 8px; padding: 12px;
+  display: flex; justify-content: center; align-items: flex-start; max-height: 74vh; overflow: auto; }
+.sc-preview img { max-width: 100%; box-shadow: 0 6px 24px rgba(0,0,0,.6); }
+.vchips .btn { padding: 4px 10px; font-size: 13px; }
+
 @media (max-width: 800px) {
+  .showcase { grid-template-columns: 1fr; }
   .grid2, .panels { grid-template-columns: 1fr; }
   .kpis { grid-template-columns: 1fr 1fr; }
   .kpi b { font-size: 18px; }

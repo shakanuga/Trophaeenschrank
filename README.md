@@ -11,6 +11,7 @@ Selbst gehosteter Tracker für 100-%-Spiele und Platin-Trophäen – im Look der
 - **Erfolge pro Spiel** (Steam und PlayStation): alle Erfolge/Trophäen mit Icon, Datum und Seltenheit, „Wie exklusiv sind 100 %?“, die leichtesten noch offenen, versteckte Erfolge hinter einer Spoiler-Sperre.
 - **Vitrine**: deine 100-%-Spiele im Trophäenschrank mit Spots und Namensschildern.
 - **Statistik**: Erfolge pro Tag (Kalender), nach Wochentag und Uhrzeit, pro Monat, Seltenheits-Verteilung, seltenste Erfolge, 100 % pro Jahr.
+- **Bild fürs Steam-Profil**: in der Vitrine über „Bild exportieren“ – PNG in 630 px (Featured Artwork Showcase), 506 px (Artwork Showcase) oder 1920 px, wahlweise gefiltert nach Plattform und Jahr.
 - Automatischer Abgleich im Hintergrund (Standard: alle 6 Stunden), Backup als JSON exportieren/importieren.
 
 ## Installation (Unraid / Docker)
