@@ -322,15 +322,17 @@ def export_showcase():
     from . import showcase
     a = request.args
     try:
-        limit = max(0, min(200, int(a.get("limit") or 20)))
-        scale = 2 if a.get("scale") == "2" else 1
+        limit = max(0, min(500, int(a.get("limit") or 20)))
+        scale = max(1, min(3, int(a.get("scale") or 1)))
+        cols = max(0, min(20, int(a.get("cols") or 0)))
     except ValueError:
         return jsonify(error="Ungültige Anzahl"), 400
     data, (w, h), shown, total = showcase.render(
         fmt=a.get("format", "featured"), platform=a.get("platform", ""), year=a.get("year", ""),
         limit=limit, style=a.get("style") or db.get_setting("cover_style", "official") or "official",
         title=(a.get("title") or "")[:60], show_dates=a.get("dates", "1") == "1",
-        show_stats=a.get("stats", "1") == "1", scale=scale)
+        show_stats=a.get("stats", "1") == "1", scale=scale,
+        layout="tiles" if a.get("layout") == "tiles" else "covers", cols=cols)
     headers = {"Cache-Control": "no-store", "X-Image-Size": f"{w}x{h}", "X-Games": f"{shown}/{total}",
                "X-Bytes": str(len(data)), "Access-Control-Expose-Headers": "X-Image-Size, X-Games, X-Bytes"}
     if a.get("download") == "1":

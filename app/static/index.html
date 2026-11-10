@@ -197,6 +197,11 @@
   <div class="dlg-head" style="margin:0 0 12px"><h2>Bild fürs Steam-Profil</h2><button class="x" data-close>✕</button></div>
   <div class="showcase">
     <form id="showcaseForm" class="sc-form">
+      <label>Layout
+        <select name="layout">
+          <option value="tiles">Kacheln (breite Steam-Banner, viele Spiele)</option>
+          <option value="covers">Cover (Hochformat, groß)</option>
+        </select></label>
       <label>Format
         <select name="format">
           <option value="featured">Featured Artwork Showcase (630 px)</option>
@@ -212,13 +217,18 @@
       </div>
       <div class="two">
         <label>Anzahl (neueste zuerst)
-          <select name="limit"><option>10</option><option selected>20</option><option>30</option><option>50</option><option value="0">Alle</option></select></label>
+          <select name="limit"><option>10</option><option>20</option><option>30</option><option>50</option><option>100</option><option value="0" selected>Alle</option></select></label>
         <label>Cover-Stil<select name="style" id="scStyle"></select></label>
+      </div>
+      <div class="two">
+        <label>Spalten
+          <select name="cols"><option value="0">automatisch</option><option>6</option><option>8</option><option>10</option><option>12</option><option>14</option><option>16</option></select></label>
+        <label>Auflösung
+          <select name="scale"><option value="1">1× (genau Steam-Breite)</option><option value="2" selected>2× (schärfer)</option><option value="3">3× (sehr scharf)</option></select></label>
       </div>
       <label>Überschrift<input name="title" placeholder="Trophäenschrank" maxlength="60"></label>
       <label class="check"><input type="checkbox" name="dates" checked> Abschlussdatum unter den Covern</label>
       <label class="check"><input type="checkbox" name="stats" checked> Kennzahlen im Kopf</label>
-      <label class="check"><input type="checkbox" name="scale"> Doppelte Auflösung (schärfer auf großen Bildschirmen)</label>
       <p class="hint" id="scInfo"></p>
       <a class="btn primary" id="scDownload" download>PNG herunterladen</a>
       <details class="sc-help"><summary>So kommt das Bild ins Steam-Profil</summary>

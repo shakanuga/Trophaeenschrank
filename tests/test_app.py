@@ -260,6 +260,10 @@ def run():
     r = c.get("/api/export/showcase.png?format=featured&scale=2&download=1&platform=playstation")
     assert _Image.open(_io.BytesIO(r.data)).width == 1260 and "attachment" in r.headers["Content-Disposition"]
     assert r.headers["X-Games"] == "1/1", r.headers["X-Games"]
+    for fmt, w in (("featured", 630), ("artwork", 506)):
+        r = c.get(f"/api/export/showcase.png?layout=tiles&format={fmt}&limit=0&scale=2&cols=12")
+        im = _Image.open(_io.BytesIO(r.data))
+        assert r.status_code == 200 and im.width == w * 2, (fmt, im.size)
     print("Alle Tests bestanden.")
 
 

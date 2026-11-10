@@ -86,6 +86,105 @@ def _cover(g, style, w, h):
     return im
 
 
+def _header(g, style, w, h):
+    """Kachelbild im Querformat: Steam-Banner, sonst das Cover mittig zugeschnitten."""
+    f = None
+    try:
+        f = covers.resolve_header(g)
+    except Exception as e:  # noqa: BLE001
+        log.debug("Banner %s: %s", g["title"], e)
+    if f:
+        try:
+            with Image.open(os.path.join(covers.COVER_DIR, f)) as im:
+                im = im.convert("RGBA")
+            s = max(w / im.width, h / im.height)
+            im = im.resize((max(w, round(im.width * s)), max(h, round(im.height * s))), Image.LANCZOS)
+            x, y = (im.width - w) // 2, (im.height - h) // 2
+            return im.crop((x, y, x + w, y + h))
+        except Exception as e:  # noqa: BLE001
+            log.debug("Banner %s: %s", g["title"], e)
+    # Kein Banner: Hochformat-Cover, oberes Drittel (dort steht meist das Logo)
+    tall = _cover(g, style if not style.startswith("case") else "official", w, round(w * 1.5))
+    top = round(tall.height * 0.12)
+    return tall.crop((0, top, w, top + h))
+
+
+TILE_BG, TILE_ACCENT, BADGE = (27, 29, 42), (92, 98, 220), (88, 92, 210)
+
+
+def _hours(min_):
+    h = (min_ or 0) / 60
+    return "" if not h else (f"{h:.1f} h".replace(".", ",") if h < 10 else f"{round(h)} h")
+
+
+def render_tiles(games, all_done, W, cols, scale, title, year, show_stats, show_dates, style):
+    """Kompakte Kacheln wie in Steams Spieleliste: Banner, Name, 100 %, Spielzeit, Erfolge."""
+    u = W / 630
+    pad, gap = max(2, round(4 * u)), max(1, round(3 * u))
+    tw = (W - 2 * pad - (cols - 1) * gap) / cols
+    ih = round(tw * 215 / 460)
+    info_h = round(tw * 0.32)
+    th = ih + max(1, round(tw * 0.03)) + info_h
+    rows = max(1, -(-len(games) // cols))
+
+    head_h = 0
+    if title or show_stats:
+        tf, sf = _font(round(16 * u), 900), _font(round(9.5 * u), 600)
+        head_h = round(8 * u) + tf.getbbox("Ag")[3] + (round(3 * u) + sf.getbbox("Ag")[3] if show_stats else 0) + round(8 * u)
+    H = head_h + pad + rows * th + (rows - 1) * gap + pad
+    img = Image.new("RGBA", (W, H), (14, 15, 22, 255))
+    d = ImageDraw.Draw(img)
+    if head_h:
+        y = round(8 * u)
+        d.text((pad + round(4 * u), y), _fit(d, title or "Trophäenschrank", tf, W - 2 * pad), font=tf, fill=TEXT)
+        if show_stats:
+            plat = sum(1 for g in all_done if g["platinum"])
+            ach = sum(g["total"] or 0 for g in all_done)
+            hours = round(sum(g["playtime_min"] or 0 for g in all_done) / 60)
+            parts = [f"{len(all_done)} Spiele auf 100 %" + (f" ({year})" if year else "")]
+            parts += ([f"{plat}× Platin"] if plat else []) + ([f"{ach:,} Erfolge".replace(",", ".")] if ach else [])
+            parts += [f"{hours:,} Std.".replace(",", ".")] if hours else []
+            d.text((pad + round(4 * u), y + tf.getbbox("Ag")[3] + round(3 * u)), "  ·  ".join(parts), font=sf, fill=MUTED)
+
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        pics = list(ex.map(lambda g: _header(g, style, round(tw), ih), games))
+    f1 = _font(max(6, round(tw * 0.085)), 800)
+    f2 = _font(max(5, round(tw * 0.072)), 600)
+    fb = _font(max(5, round(tw * 0.07)), 800)
+    for i, (g, pic) in enumerate(zip(games, pics)):
+        r, c = divmod(i, cols)
+        x = round(pad + c * (tw + gap))
+        y = head_h + pad + r * (th + gap)
+        w = round(tw)
+        d.rectangle([x, y, x + w - 1, y + th - 1], fill=TILE_BG)
+        img.paste(pic, (x, y))
+        accent = PLATIN if g["platinum"] else TILE_ACCENT
+        d.rectangle([x, y + ih, x + w - 1, y + ih + max(1, round(tw * 0.03)) - 1], fill=accent)
+        # Schild oben links
+        label = "Platin" if g["platinum"] else "100 %"
+        bx, by = x + round(tw * 0.03), y + round(tw * 0.03)
+        lw = d.textlength(label, font=fb)
+        d.rounded_rectangle([bx, by, bx + lw + round(tw * 0.08), by + fb.size + round(tw * 0.04)],
+                            radius=round(tw * 0.025), fill=(PLATIN if g["platinum"] else BADGE) + (235,))
+        d.text((bx + round(tw * 0.04), by + round(tw * 0.01)), label, font=fb,
+               fill=(20, 30, 50) if g["platinum"] else (255, 255, 255))
+        # Textzeilen
+        iy = y + ih + max(1, round(tw * 0.03)) + round(tw * 0.03)
+        right1 = "100%"
+        r1w = d.textlength(right1, font=f1)
+        tx = x + round(tw * 0.04)
+        d.text((tx, iy), _fit(d, g["title"], f1, w - r1w - round(tw * 0.14)), font=f1, fill=TEXT)
+        d.text((x + w - round(tw * 0.04) - r1w, iy), right1, font=f1, fill=(140, 150, 255) if not g["platinum"] else PLATIN)
+        iy2 = iy + f1.size + round(tw * 0.02)
+        left2 = (datetime.fromtimestamp(g["completed_at"]).strftime("%d.%m.%Y") if show_dates and g["completed_at"]
+                 else _hours(g["playtime_min"]))
+        right2 = f"{g['unlocked']}/{g['total']}" if g["total"] else ""
+        d.text((tx, iy2), left2, font=f2, fill=MUTED)
+        if right2:
+            d.text((x + w - round(tw * 0.04) - d.textlength(right2, font=f2), iy2), right2, font=f2, fill=MUTED)
+    return img
+
+
 def _gradient(w, h):
     col = Image.new("RGB", (1, h))
     for y in range(h):
@@ -103,11 +202,15 @@ def _fit(d, text, font, maxw):
 
 
 def render(fmt="featured", platform="", year="", limit=20, style="official", title="", show_dates=True,
-           show_stats=True, scale=1):
+           show_stats=True, scale=1, layout="covers", cols=0):
     spec = FORMATS.get(fmt, FORMATS["featured"])
     games = select_games(platform, year, limit)
     all_done = select_games(platform, year, 0)
     W = spec["width"] * scale
+    if layout == "tiles":
+        cols = cols or {"featured": 12, "artwork": 10, "wide": 16}.get(fmt, 12)
+        img = render_tiles(games, all_done, W, cols, scale, title, year, show_stats, show_dates, style)
+        return _encode(img), img.size, len(games), len(all_done)
     cols = spec["cols"]
     pad = round(W * 0.035)
     gap = round(W * 0.022)
@@ -176,6 +279,10 @@ def render(fmt="featured", platform="", year="", limit=20, style="official", tit
         msg = "Noch keine Spiele auf 100 %"
         d.text(((W - d.textlength(msg, font=ef)) / 2, head_h + pad), msg, font=ef, fill=MUTED)
 
+    return _encode(img), (W, H), len(games), len(all_done)
+
+
+def _encode(img):
     out = io.BytesIO()
     img.convert("RGB").save(out, "PNG", optimize=True)
     data = out.getvalue()
@@ -183,4 +290,4 @@ def render(fmt="featured", platform="", year="", limit=20, style="official", tit
         out = io.BytesIO()
         img.convert("RGB").quantize(256, method=Image.Quantize.MEDIANCUT).save(out, "PNG", optimize=True)
         data = out.getvalue()
-    return data, (W, H), len(games), len(all_done)
+    return data

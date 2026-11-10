@@ -146,10 +146,9 @@ function openShowcase() {
   let timer, seq = 0;
   const url = (download) => {
     const f = new FormData(form), p = new URLSearchParams();
-    for (const k of ["format", "platform", "year", "limit", "style", "title"]) p.set(k, f.get(k) || "");
+    for (const k of ["layout", "format", "platform", "year", "limit", "style", "title", "cols", "scale"]) p.set(k, f.get(k) || "");
     p.set("dates", f.get("dates") ? "1" : "0");
     p.set("stats", f.get("stats") ? "1" : "0");
-    p.set("scale", f.get("scale") ? "2" : "1");
     if (download) p.set("download", "1");
     return `/api/export/showcase.png?${p}`;
   };
@@ -173,7 +172,13 @@ function openShowcase() {
       } catch (e) { if (my === seq) $("#scInfo").textContent = e.message; }
     }, 250);
   };
-  form.oninput = update;
+  const sync = () => {
+    const tiles = form.layout.value === "tiles";
+    form.cols.closest("label").style.display = tiles ? "" : "none";
+    form.dates.closest("label").lastChild.textContent = tiles ? " Abschlussdatum statt Spielzeit" : " Abschlussdatum unter den Covern";
+  };
+  sync();
+  form.oninput = () => { sync(); update(); };
   form.onsubmit = (e) => e.preventDefault();
   dlg.showModal();
   update();

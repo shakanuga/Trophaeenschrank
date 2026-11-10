@@ -266,6 +266,39 @@ def resolve(g, style):
         return found
 
 
+def resolve_header(g):
+    """Breites Banner-Bild (Steam-Header). Für andere Plattformen das Plattform-Bild;
+    None, wenn es keins gibt (dann nimmt der Aufrufer das Hochformat-Cover)."""
+    key = "header|" + hashlib.sha1((g["cover_override"] or "").encode()).hexdigest()[:8]
+    c = db.conn()
+    with _lock_for((g["id"], key)):
+        row = c.execute("SELECT file, ts FROM cover_cache WHERE game_id=? AND source=?", (g["id"], key)).fetchone()
+        if row and row["file"] and os.path.exists(os.path.join(COVER_DIR, row["file"])):
+            return row["file"]
+        if row and not row["file"] and db.now() - row["ts"] < NEG_TTL:
+            return None
+        if g["platform"] == "steam":
+            urls = lambda: steam_landscape_urls(g["ext_id"])  # noqa: E731
+        else:
+            urls = lambda: [g["cover_src"]] if g["cover_src"] else []  # noqa: E731
+        found, used = None, ""
+        try:
+            for u in urls():
+                try:
+                    found = _download(u)
+                except requests.RequestException:
+                    continue
+                if found:
+                    used = u
+                    break
+        except requests.RequestException:
+            pass
+        c.execute("INSERT OR REPLACE INTO cover_cache(game_id, source, url, file, ts) VALUES(?,?,?,?,?)",
+                  (g["id"], key, used, found or "", db.now()))
+        c.commit()
+        return found
+
+
 def resolve_case(g, style):
     """Spielhüllen-Cover: Grundbild holen (offiziell oder SteamGridDB) und in die Hülle setzen."""
     from . import casecover  # Pillow nur laden, wenn der Stil benutzt wird
