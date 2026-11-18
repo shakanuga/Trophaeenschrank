@@ -2,6 +2,9 @@
 
 Selbst gehosteter Tracker für 100-%-Spiele und Platin-Trophäen – im Look der Steam-Bibliothek.
 
+![Trophäenschrank – Bibliothek](docs/screenshots/bibliothek.png)
+
+
 - **Steam**: liest die komplette Bibliothek samt Erfolgen aus. 100 % wird automatisch erkannt, das Abschlussdatum ist der Zeitpunkt des letzten Erfolgs.
 - **PlayStation**: Trophäenlisten über das NPSSO-Token (dieselbe Schnittstelle wie die PlayStation-App). Platin wird erkannt, Datum = Platin-Trophäe.
 - **Xbox**: über [OpenXBL](https://xbl.io) (kostenloser Key).
@@ -13,6 +16,15 @@ Selbst gehosteter Tracker für 100-%-Spiele und Platin-Trophäen – im Look der
 - **Statistik**: Erfolge pro Tag (Kalender), nach Wochentag und Uhrzeit, pro Monat, Seltenheits-Verteilung, seltenste Erfolge, 100 % pro Jahr.
 - **Bild fürs Steam-Profil**: in der Vitrine über „Bild exportieren“ – PNG in 630 px (Featured Artwork Showcase), 506 px (Artwork Showcase) oder 1920 px, als kompakte Kacheln mit Steam-Bannern (z.B. 12 pro Reihe) oder als große Cover, wahlweise gefiltert nach Plattform und Jahr.
 - Automatischer Abgleich im Hintergrund (Standard: alle 6 Stunden), Backup als JSON exportieren/importieren.
+
+## Screenshots
+
+<table>
+<tr><td width="50%"><img src="docs/screenshots/vitrine.png" alt="Vitrine mit allen 100-%-Spielen"><br><sub>Vitrine mit allen 100-%-Spielen</sub></td><td width="50%"><img src="docs/screenshots/erfolge.png" alt="Spiel mit Trophäen und Seltenheit"><br><sub>Spiel mit Trophäen und Seltenheit</sub></td></tr>
+<tr><td width="50%"><img src="docs/screenshots/statistik.png" alt="Statistik: Erfolge pro Tag, Wochentag und Monat"><br><sub>Statistik: Erfolge pro Tag, Wochentag und Monat</sub></td><td width="50%"><img src="docs/screenshots/mobil.png" alt="Auf dem Handy"><br><sub>Auf dem Handy</sub></td></tr>
+</table>
+
+<sub>Screenshots mit erfundenen Demo-Daten und Platzhalter-Covern.</sub>
 
 ## Installation (Unraid / Docker)
 
